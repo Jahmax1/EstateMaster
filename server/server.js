@@ -4,12 +4,16 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const authRoutes = require('./routes/auth');
 const propertyRoutes = require('./routes/properties');
+const path = require('path');
 
 dotenv.config();
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+// Serve static files from uploads folder
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 mongoose
   .connect(process.env.MONGO_URI)

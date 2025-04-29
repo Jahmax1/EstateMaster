@@ -44,6 +44,21 @@ const PropertyList = () => {
               <p>{property.description}</p>
               <p>Status: {property.availability}</p>
               <p>Owner: {property.owner.name} ({property.owner.email})</p>
+              {property.photos && property.photos.length > 0 && (
+                <div className="mt-2">
+                  <p>Photos:</p>
+                  <div className="flex space-x-2">
+                    {property.photos.map((photo, index) => (
+                      <img
+                        key={index}
+                        src={`http://localhost:5000/${photo}`}
+                        alt={`Property ${index + 1}`}
+                        className="w-24 h-24 object-cover rounded"
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>

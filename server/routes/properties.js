@@ -2,9 +2,20 @@ const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
 const Property = require('../models/Property');
+const multer = require('multer');
+const path = require('path');
 
-// Create a property (landlord only)
-router.post('/', auth, async (req, res) => {
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/');
+  },
+  filename: (req, file, cb) => {
+    cb(null, `${Date.now()}-${file.originalname}`);
+  },
+});
+const upload = multer({ storage }).array('photos', 5);
+
+router.post('/', auth, upload, async (req, res) => {
   if (req.user.role !== 'landlord') {
     return res.status(403).json({ msg: 'Only landlords can create properties' });
   }
@@ -18,10 +29,10 @@ router.post('/', auth, async (req, res) => {
     unitNumber,
     rentPrice,
     purchasePrice,
-    photos,
     description,
     type,
   } = req.body;
+  const photos = req.files.map((file) => file.path);
 
   try {
     const property = new Property({

@@ -13,6 +13,7 @@ const LandlordDashboard = () => {
     type: 'house',
     rentPrice: '',
     description: '',
+    photos: null,
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -45,7 +46,11 @@ const LandlordDashboard = () => {
   }, [user]);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    if (e.target.name === 'photos') {
+      setFormData({ ...formData, photos: e.target.files });
+    } else {
+      setFormData({ ...formData, [e.target.name]: e.target.value });
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -53,8 +58,21 @@ const LandlordDashboard = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      await axios.post('http://localhost:5000/api/properties', formData, {
-        headers: { 'x-auth-token': token },
+      const formDataToSend = new FormData();
+      for (const key in formData) {
+        if (key === 'photos' && formData.photos) {
+          Array.from(formData.photos).forEach((photo) => {
+            formDataToSend.append('photos', photo);
+          });
+        } else {
+          formDataToSend.append(key, formData[key]);
+        }
+      }
+      await axios.post('http://localhost:5000/api/properties', formDataToSend, {
+        headers: {
+          'x-auth-token': token,
+          'Content-Type': 'multipart/form-data',
+        },
       });
       setFormData({
         region: '',
@@ -62,8 +80,8 @@ const LandlordDashboard = () => {
         type: 'house',
         rentPrice: '',
         description: '',
+        photos: null,
       });
-      // Refresh properties
       const res = await axios.get('http://localhost:5000/api/properties', {
         headers: { 'x-auth-token': token },
       });
@@ -159,6 +177,17 @@ const LandlordDashboard = () => {
               rows="4"
             />
           </div>
+          <div className="mb-4 col-span-2">
+            <label className="block text-gray-700">Photos (up to 5)</label>
+            <input
+              type="file"
+              name="photos"
+              multiple
+              accept="image/*"
+              onChange={handleChange}
+              className="w-full p-2 border rounded"
+            />
+          </div>
           <div className="col-span-2">
             <button
               type="submit"
@@ -191,6 +220,21 @@ const LandlordDashboard = () => {
                 <p>Rent Price: {property.rentPrice ? `$${property.rentPrice}` : 'N/A'}</p>
                 <p>{property.description}</p>
                 <p>Status: {property.availability}</p>
+                {property.photos && property.photos.length > 0 && (
+                  <div className="mt-2">
+                    <p>Photos:</p>
+                    <div className="flex space-x-2">
+                      {property.photos.map((photo, index) => (
+                        <img
+                          key={index}
+                          src={`http://localhost:5000/${photo}`}
+                          alt={`Property ${index + 1}`}
+                          className="w-24 h-24 object-cover rounded"
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
