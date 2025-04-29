@@ -57,10 +57,14 @@ router.post('/', auth, upload, async (req, res) => {
   }
 });
 
-// Get all properties (public)
 router.get('/', async (req, res) => {
   try {
-    const properties = await Property.find().populate('owner', 'name email phone');
+    const { region, type, maxPrice } = req.query;
+    const query = {};
+    if (region) query.region = new RegExp(region, 'i');
+    if (type) query.type = type;
+    if (maxPrice) query.rentPrice = { $lte: Number(maxPrice) };
+    const properties = await Property.find(query).populate('owner', 'name email phone');
     res.json(properties);
   } catch (err) {
     console.error('Get Properties Error:', err.message);

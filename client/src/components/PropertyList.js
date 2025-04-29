@@ -5,27 +5,109 @@ const PropertyList = () => {
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [filters, setFilters] = useState({
+    region: '',
+    type: '',
+    maxPrice: '',
+  });
+
+  const fetchProperties = async () => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams();
+      if (filters.region) params.append('region', filters.region);
+      if (filters.type) params.append('type', filters.type);
+      if (filters.maxPrice) params.append('maxPrice', filters.maxPrice);
+      const res = await axios.get(`http://localhost:5000/api/properties?${params}`);
+      setProperties(res.data);
+    } catch (err) {
+      console.error('Fetch Properties Error:', err.response?.data);
+      setError(err.response?.data?.msg || 'Failed to fetch properties');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchProperties = async () => {
-      try {
-        setLoading(true);
-        const res = await axios.get('http://localhost:5000/api/properties');
-        setProperties(res.data);
-      } catch (err) {
-        console.error('Fetch Properties Error:', err.response?.data);
-        setError(err.response?.data?.msg || 'Failed to fetch properties');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchProperties();
   }, []);
+
+  const handleFilterChange = (e) => {
+    setFilters({ ...filters, [e.target.name]: e.target.value });
+  };
+
+  const handleFilterSubmit = (e) => {
+    e.preventDefault();
+    fetchProperties();
+  };
+
+  const handleClearFilters = () => {
+    setFilters({ region: '', type: '', maxPrice: '' });
+    fetchProperties();
+  };
 
   return (
     <div className="max-w-6xl mx-auto mt-10 p-6">
       <h2 className="text-2xl font-bold mb-4">Available Properties</h2>
+
+      {/* Filter Form */}
+      <form onSubmit={handleFilterSubmit} className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div>
+          <label className="block text-gray-700">Region</label>
+          <input
+            type="text"
+            name="region"
+            value={filters.region}
+            onChange={handleFilterChange}
+            className="w-full p-2 border rounded"
+            placeholder="e.g., Downtown"
+          />
+        </div>
+        <div>
+          <label className="block text-gray-700">Type</label>
+          <select
+            name="type"
+            value={filters.type}
+            onChange={handleFilterChange}
+            className="w-full p-2 border rounded"
+          >
+            <option value="">All Types</option>
+            <option value="house">House</option>
+            <option value="apartment">Apartment</option>
+            <option value="condo">Condo</option>
+            <option value="land">Land</option>
+            <option value="commercial">Commercial</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-gray-700">Max Rent Price</label>
+          <input
+            type="number"
+            name="maxPrice"
+            value={filters.maxPrice}
+            onChange={handleFilterChange}
+            className="w-full p-2 border rounded"
+            placeholder="e.g., 1000"
+            min="0"
+          />
+        </div>
+        <div className="flex items-end space-x-2">
+          <button
+            type="submit"
+            className="p-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            Apply Filters
+          </button>
+          <button
+            type="button"
+            onClick={handleClearFilters}
+            className="p-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+          >
+            Clear
+          </button>
+        </div>
+      </form>
+
       {error && <p className="text-red-500 mb-4">{error}</p>}
       {loading && <p>Loading properties...</p>}
       {properties.length === 0 && !loading ? (
