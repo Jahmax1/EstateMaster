@@ -4,9 +4,9 @@ import { AuthContext } from '../context/AuthContext';
 
 const Login = () => {
   const { login } = useContext(AuthContext);
-  const navigate = useNavigate();
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -14,12 +14,25 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
+    console.log('Login Submit:', formData);
     try {
       const res = await login(formData);
-      navigate(`/${res.role}-dashboard`);
+      console.log('Login Response:', res);
+      if (res && res.role) {
+        console.log('Login Success: Role:', res.role);
+        navigate(res.role === 'landlord' ? '/landlord-dashboard' : '/properties');
+      } else {
+        console.error('Login Error: Invalid response', res);
+        setError('Login failed: No role found in response');
+      }
     } catch (err) {
+      console.error('Login Error:', {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+      });
       setError(err.response?.data?.msg || 'Login failed');
-      console.error(err);
     }
   };
 
@@ -50,7 +63,10 @@ const Login = () => {
             required
           />
         </div>
-        <button type="submit" className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">
+        <button
+          type="submit"
+          className="w-full p-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+        >
           Login
         </button>
       </form>

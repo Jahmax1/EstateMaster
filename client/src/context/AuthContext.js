@@ -3,67 +3,80 @@ import axios from 'axios';
 
 export const AuthContext = createContext();
 
-// Axios interceptor for debugging
-axios.interceptors.request.use(
-  (config) => {
-    console.log('Axios Request:', {
-      url: config.url,
-      method: config.method,
-      data: JSON.stringify(config.data, null, 2),
-    });
-    return config;
-  },
-  (error) => {
-    console.error('Axios Request Error:', error);
-    return Promise.reject(error);
-  }
-);
-
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-  console.log('API URL:', API_URL);
+  const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+  console.log('API URL:', apiUrl);
 
-  useEffect(() => {
+  const loadUser = async () => {
     const token = localStorage.getItem('token');
-    if (token) {
-      axios
-        .get(`${API_URL}/api/auth/me`, {
-          headers: { 'x-auth-token': token },
-        })
-        .then((res) => {
-          setUser(res.data);
-          setLoading(false);
-        })
-        .catch((err) => {
-          console.error('Auth Me Error:', err.response?.data || err);
-          localStorage.removeItem('token');
-          setLoading(false);
-        });
-    } else {
+    console.log('loadUser: Token found:', !!token);
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const res = await axios.get(`${apiUrl}/api/auth/me`, {
+        headers: { 'x-auth-token': token },
+      });
+      console.log('loadUser: User loaded:', res.data);
+      setUser(res.data);
+    } catch (err) {
+      console.error('Auth Me Error:', {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+      });
+      localStorage.removeItem('token');
+      setUser(null);
+    } finally {
       setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    loadUser();
   }, []);
 
   const register = async (formData) => {
-    console.log('Register Payload:', JSON.stringify(formData, null, 2));
-    const res = await axios.post(`${API_URL}/api/auth/register`, formData);
-    localStorage.setItem('token', res.data.token);
-    setUser({ role: res.data.role });
-    return res.data;
+    try {
+      const res = await axios.post(`${apiUrl}/api/auth/register`, formData);
+      console.log('Register Response:', res.data);
+      localStorage.setItem('token', res.data.token);
+      await loadUser();
+      return res.data; // { token, role }
+    } catch (err) {
+      console.error('Register Error:', {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+      });
+      throw new Error(err.response?.data?.msg || 'Registration failed');
+    }
   };
 
   const login = async (formData) => {
-    console.log('Login Payload:', JSON.stringify(formData, null, 2));
-    const res = await axios.post(`${API_URL}/api/auth/login`, formData);
-    localStorage.setItem('token', res.data.token);
-    setUser({ role: res.data.role });
-    return res.data;
+    try {
+      const res = await axios.post(`${apiUrl}/api/auth/login`, formData);
+      console.log('Login Response:', res.data);
+      localStorage.setItem('token', res.data.token);
+      await loadUser();
+      return res.data; // { token, role }
+    } catch (err) {
+      console.error('Login Error:', {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+      });
+      throw new Error(err.response?.data?.msg || 'Login failed');
+    }
   };
 
   const logout = () => {
+    console.log('Logging out');
     localStorage.removeItem('token');
     setUser(null);
   };

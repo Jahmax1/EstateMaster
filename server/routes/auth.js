@@ -1,14 +1,13 @@
 const express = require('express');
 const router = express.Router();
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const auth = require('../middleware/auth');
 const User = require('../models/User');
 
 router.post('/register', async (req, res) => {
   console.log('Register Request Body:', JSON.stringify(req.body, null, 2));
   const { name, email, phone, password, role } = req.body;
-
-  // Log raw input
-  console.log('Raw Input:', { name, email, phone, password, role, roleType: typeof role });
 
   // Validate required fields
   if (!name || !email || !phone || !password || !role) {
@@ -16,17 +15,15 @@ router.post('/register', async (req, res) => {
     return res.status(400).json({ msg: 'All fields are required', missingFields: { name, email, phone, password, role } });
   }
 
-  // Log role validation
+  // Validate role
   const validRoles = ['tenant', 'landlord', 'broker', 'admin'];
   console.log('Valid Roles:', validRoles);
   console.log('Received Role:', role);
   console.log('Role Check:', validRoles.includes(role));
-
-  // Temporarily bypass role validation
-  // if (!validRoles.includes(role)) {
-  //   console.log('Role Validation Failed:', { receivedRole: role, validRoles });
-  //   return res.status(400).json({ error: 'Invalid role', receivedRole: role, validRoles });
-  // }
+  if (!validRoles.includes(role)) {
+    console.log('Role Validation Failed:', { receivedRole: role, validRoles });
+    return res.status(400).json({ msg: 'Invalid role', receivedRole: role, validRoles });
+  }
 
   try {
     // Check for existing user
@@ -37,7 +34,7 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ msg: 'User already exists', email });
     }
 
-    // Create user
+    // Create user (password will be hashed in User.js pre('save'))
     console.log('Creating User:', { name, email, phone, role });
     user = new User({ name, email, phone, password, role });
     await user.save();
@@ -57,10 +54,7 @@ router.post('/register', async (req, res) => {
       body: req.body,
       validationErrors: err.errors ? Object.values(err.errors).map(e => e.message) : null,
     });
-    if (err.message.includes('role')) {
-      return res.status(400).json({ msg: 'Invalid role', error: err.message, receivedRole: role });
-    }
-    return res.status(400).json({ msg: 'Registration failed', error: err.message });
+    return res.status(500).json({ msg: 'Server error', error: err.message });
   }
 });
 
@@ -83,9 +77,13 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ msg: 'Invalid credentials' });
     }
 
+    // Log stored password hash (for debugging)
+    console.log('Stored Password Hash:', user.password);
+
     // Verify password
     console.log('Verifying Password for:', email);
-    const isMatch = await user.matchPassword(password);
+    const isMatch = await bcrypt.compare(password, user.password);
+    console.log('Password Match Result:', isMatch);
     if (!isMatch) {
       console.log('Password Mismatch:', email);
       return res.status(400).json({ msg: 'Invalid credentials' });
@@ -108,22 +106,19 @@ router.post('/login', async (req, res) => {
   }
 });
 
-router.get('/me', async (req, res) => {
-  const token = req.header('x-auth-token');
-  if (!token) {
-    return res.status(401).json({ msg: 'No token, authorization denied' });
-  }
-
+router.get('/me', auth, async (req, res) => {
+  console.log('GET /api/auth/me: Fetching user:', req.user.id);
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.user.id).select('-password');
+    const user = await User.findById(req.user.id).select('-password');
     if (!user) {
+      console.log('GET /api/auth/me: User not found:', req.user.id);
       return res.status(404).json({ msg: 'User not found' });
     }
+    console.log('GET /api/auth/me: User fetched:', user.email);
     res.json({ id: user._id, name: user.name, email: user.email, role: user.role });
   } catch (err) {
-    console.error('Me Error:', { message: err.message, stack: err.stack });
-    res.status(401).json({ msg: 'Token is not valid' });
+    console.error('Get Me Error:', { message: err.message, stack: err.stack });
+    res.status(500).json({ msg: 'Server error', error: err.message });
   }
 });
 

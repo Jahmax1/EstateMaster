@@ -16,6 +16,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage }).array('photos', 5);
 
 router.post('/', auth, upload, async (req, res) => {
+  console.log('POST /api/properties received:', req.body, req.files);
   if (req.user.role !== 'landlord') {
     return res.status(403).json({ msg: 'Only landlords can create properties' });
   }
@@ -50,6 +51,7 @@ router.post('/', auth, upload, async (req, res) => {
       type,
     });
     await property.save();
+    console.log('Property created:', property._id);
     res.json(property);
   } catch (err) {
     console.error('Create Property Error:', err.message);
@@ -58,13 +60,16 @@ router.post('/', auth, upload, async (req, res) => {
 });
 
 router.get('/', async (req, res) => {
+  console.log('GET /api/properties received with query:', req.query);
   try {
     const { region, type, maxPrice } = req.query;
     const query = {};
     if (region) query.region = new RegExp(region, 'i');
     if (type) query.type = type;
     if (maxPrice) query.rentPrice = { $lte: Number(maxPrice) };
+    console.log('MongoDB query:', query);
     const properties = await Property.find(query).populate('owner', 'name email phone');
+    console.log('Properties found:', properties.length);
     res.json(properties);
   } catch (err) {
     console.error('Get Properties Error:', err.message);

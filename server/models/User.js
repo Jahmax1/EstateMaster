@@ -2,15 +2,20 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const UserSchema = new mongoose.Schema({
-  name: { type: String, required: [true, 'Name is required'], trim: true },
+  name: {
+    type: String,
+    required: [true, 'Name is required'],
+  },
   email: {
     type: String,
     required: [true, 'Email is required'],
     unique: true,
-    trim: true,
-    match: [/^\S+@\S+\.\S+$/, 'Please enter a valid email'],
+    match: [/.+\@.+\..+/, 'Please enter a valid email'],
   },
-  phone: { type: String, required: [true, 'Phone is required'], trim: true },
+  phone: {
+    type: String,
+    required: [true, 'Phone is required'],
+  },
   password: {
     type: String,
     required: [true, 'Password is required'],
@@ -18,28 +23,22 @@ const UserSchema = new mongoose.Schema({
   },
   role: {
     type: String,
+    enum: ['tenant', 'landlord', 'broker', 'admin'],
     required: [true, 'Role is required'],
-    enum: {
-      values: ['tenant', 'landlord', 'broker', 'admin'],
-      message: '{VALUE} is not a valid role',
-    },
   },
-  createdAt: { type: Date, default: Date.now },
 });
 
+// Hash password before saving
 UserSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) return next();
-  try {
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
-    next();
-  } catch (err) {
-    next(err);
+  if (!this.isModified('password')) {
+    console.log('Password not modified, skipping hash');
+    return next();
   }
+  console.log('Hashing password for:', this.email);
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
+  console.log('Password hashed:', this.password);
+  next();
 });
-
-UserSchema.methods.matchPassword = async function (enteredPassword) {
-  return await bcrypt.compare(enteredPassword, this.password);
-};
 
 module.exports = mongoose.model('User', UserSchema);

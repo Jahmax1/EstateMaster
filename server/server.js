@@ -12,8 +12,14 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Log all incoming requests
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  next();
+});
+
 // Serve static files from uploads folder
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static(path.join(__dirname, 'Uploads')));
 
 mongoose
   .connect(process.env.MONGO_URI)

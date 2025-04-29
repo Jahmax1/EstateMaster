@@ -12,16 +12,21 @@ const PropertyList = () => {
   });
 
   const fetchProperties = async () => {
+    console.log('Fetching properties with filters:', filters);
     try {
       setLoading(true);
+      setError('');
       const params = new URLSearchParams();
-      if (filters.region) params.append('region', filters.region);
+      if (filters.region.trim()) params.append('region', filters.region.trim());
       if (filters.type) params.append('type', filters.type);
       if (filters.maxPrice) params.append('maxPrice', filters.maxPrice);
-      const res = await axios.get(`http://localhost:5000/api/properties?${params}`);
+      const url = `http://localhost:5000/api/properties?${params.toString()}`;
+      console.log('Request URL:', url);
+      const res = await axios.get(url);
+      console.log('Fetch Properties Response:', res.data);
       setProperties(res.data);
     } catch (err) {
-      console.error('Fetch Properties Error:', err.response?.data);
+      console.error('Fetch Properties Error:', err.message, err.response?.data, err.response?.status);
       setError(err.response?.data?.msg || 'Failed to fetch properties');
     } finally {
       setLoading(false);
@@ -29,21 +34,23 @@ const PropertyList = () => {
   };
 
   useEffect(() => {
+    console.log('useEffect triggered with filters:', filters);
     fetchProperties();
-  }, []);
+  }, [filters]); // Re-run when filters change
 
   const handleFilterChange = (e) => {
+    console.log('Filter changed:', e.target.name, e.target.value);
     setFilters({ ...filters, [e.target.name]: e.target.value });
   };
 
   const handleFilterSubmit = (e) => {
     e.preventDefault();
-    fetchProperties();
+    console.log('Filter form submitted with:', filters);
   };
 
   const handleClearFilters = () => {
+    console.log('Clearing filters');
     setFilters({ region: '', type: '', maxPrice: '' });
-    fetchProperties();
   };
 
   return (
