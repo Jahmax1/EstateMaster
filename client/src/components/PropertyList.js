@@ -19,9 +19,9 @@ const PropertyList = () => {
   const [filters, setFilters] = useState({
     region: '',
     type: '',
-    maxPrice: '10000', // Default to higher value
+    maxPrice: '10000', // Higher default to cover rentPrice: 1200
   });
-  const [mapCenter, setMapCenter] = useState([0.3476, 32.5825]); // Kampala default [lat, lng]
+  const [mapCenter, setMapCenter] = useState([0.3476, 32.5825]); // Match property coords
   const navigate = useNavigate();
 
   const mapContainerStyle = {
@@ -39,7 +39,9 @@ const PropertyList = () => {
       const params = new URLSearchParams();
       if (filters.region.trim()) params.append('region', filters.region.trim());
       if (filters.type) params.append('type', filters.type);
-      if (filters.maxPrice) params.append('maxPrice', filters.maxPrice);
+      if (filters.maxPrice && parseInt(filters.maxPrice) > 0) {
+        params.append('maxPrice', parseInt(filters.maxPrice));
+      }
       if (mapCenter[0] && mapCenter[1]) {
         params.append('lat', mapCenter[0]);
         params.append('lng', mapCenter[1]);
@@ -65,7 +67,13 @@ const PropertyList = () => {
 
   const handleFilterChange = (e) => {
     console.log('Filter changed:', e.target.name, e.target.value);
-    setFilters({ ...filters, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    if (name === 'maxPrice' && value && parseInt(value) < 100) {
+      setError('Max price must be at least 100 UGX');
+      return;
+    }
+    setFilters({ ...filters, [name]: value });
+    setError('');
   };
 
   const handleFilterSubmit = (e) => {
@@ -78,6 +86,7 @@ const PropertyList = () => {
     console.log('Clearing filters');
     setFilters({ region: '', type: '', maxPrice: '10000' });
     setMapCenter([0.3476, 32.5825]);
+    setError('');
   };
 
   // Component to handle map click events
@@ -133,7 +142,8 @@ const PropertyList = () => {
             onChange={handleFilterChange}
             className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="e.g., 1200"
-            min="0"
+            min="100"
+            step="100"
           />
         </div>
         <div className="flex items-end space-x-2">
