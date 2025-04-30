@@ -9,6 +9,8 @@ import LandlordDashboard from './pages/LandlordDashboard';
 import BrokerDashboard from './pages/BrokerDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import PropertyList from './components/PropertyList';
+import PropertyDetails from './pages/PropertyDetails';
+import AddProperty from './pages/AddProperty';
 
 function App() {
   return (
@@ -29,6 +31,8 @@ function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/login" element={<Login />} />
             <Route path="/properties" element={<PropertyList />} />
+            <Route path="/properties/:id" element={<PropertyDetails />} />
+            <Route path="/add-property" element={<AddProperty />} />
             <Route path="/tenant-dashboard" element={<TenantDashboard />} />
             <Route path="/landlord-dashboard" element={<LandlordDashboard />} />
             <Route path="/broker-dashboard" element={<BrokerDashboard />} />

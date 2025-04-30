@@ -1,28 +1,65 @@
 const mongoose = require('mongoose');
 
 const PropertySchema = new mongoose.Schema({
-  owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  region: { type: String, required: [true, 'Region is required'], trim: true },
-  district: { type: String, required: [true, 'District is required'], trim: true },
-  division: { type: String, trim: true },
-  neighborhood: { type: String, trim: true },
-  buildingName: { type: String, trim: true },
-  unitNumber: { type: String, trim: true },
-  rentPrice: { type: Number, min: 0 },
-  purchasePrice: { type: Number, min: 0 },
-  photos: [{ type: String }],
-  description: { type: String, trim: true },
-  availability: {
+  title: {
     type: String,
-    enum: ['available', 'taken'],
-    default: 'available',
+    required: [true, 'Title is required'],
+  },
+  description: {
+    type: String,
+    required: [true, 'Description is required'],
+  },
+  region: {
+    type: String,
+    required: [true, 'Region is required'],
+  },
+  district: {
+    type: String,
+    required: [true, 'District is required'],
+  },
+  address: {
+    type: String,
+    required: [true, 'Address is required'],
   },
   type: {
     type: String,
-    enum: ['house', 'apartment', 'condo', 'land', 'commercial'],
-    required: [true, 'Property type is required'],
+    enum: ['apartment', 'house', 'condo', 'land', 'commercial'],
+    required: [true, 'Type is required'],
   },
-  createdAt: { type: Date, default: Date.now },
-});
+  rentPrice: {
+    type: Number,
+  },
+  purchasePrice: {
+    type: Number,
+  },
+  photos: [{
+    type: String,
+    required: [true, 'At least one photo is required'],
+  }],
+  videos: [{
+    type: String,
+  }],
+  location: {
+    type: {
+      type: String,
+      enum: ['Point'],
+      default: 'Point',
+    },
+    coordinates: {
+      type: [Number], // [longitude, latitude]
+      index: '2dsphere',
+    },
+  },
+  owner: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: [true, 'Owner is required'],
+  },
+  status: {
+    type: String,
+    enum: ['available', 'rented', 'sold'],
+    default: 'available',
+  },
+}, { timestamps: true });
 
 module.exports = mongoose.model('Property', PropertySchema);
